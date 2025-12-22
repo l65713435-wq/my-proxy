@@ -3,7 +3,6 @@ const axios = require('axios');
 module.exports = async (req, res) => {
   const { url } = req.query;
 
-  // URLが指定されていない場合は、ダミーの学習用トップ画面を表示
   if (!url) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(`
@@ -28,12 +27,10 @@ module.exports = async (req, res) => {
           <div class="container">
               <h1>世界史重要事項アーカイブ（閲覧用）</h1>
               <p>本データベースは、個人の学習目的で歴史的資料を横断的に検索するためのものです。調べたい時代やキーワードを入力してください。</p>
-              
               <div class="search-box">
                   <input type="text" id="target" placeholder="例: ルネサンス, 産業革命, https://...">
                   <button onclick="go()">検索</button>
               </div>
-
               <div class="links">
                   <p style="font-weight:bold;">【クイックアクセス】</p>
                   <ul style="font-size: 0.8rem;">
@@ -41,16 +38,12 @@ module.exports = async (req, res) => {
                       <li><a href="#" onclick="quick('https://ja.wikipedia.org')">Wikipedia（歴史カテゴリ）</a></li>
                   </ul>
               </div>
-
               <p class="notice">※学術利用を目的としているため、エンターテインメント目的の利用は推奨されません。</p>
           </div>
-
           <script>
               function go() {
                   let val = document.getElementById('target').value;
                   if (!val) return;
-                  
-                  // URLっぽくない場合はGoogle検索に飛ばす
                   if (!val.startsWith('http')) {
                       val = 'https://www.google.com/search?q=' + encodeURIComponent(val);
                   }
@@ -59,7 +52,6 @@ module.exports = async (req, res) => {
               function quick(u) {
                   window.location.href = '?url=' + encodeURIComponent(u);
               }
-              // エンターキーでも検索できるようにする
               document.getElementById('target').addEventListener('keypress', function(e) {
                   if (e.key === 'Enter') go();
               });
@@ -69,13 +61,14 @@ module.exports = async (req, res) => {
     `);
   }
 
-  // --- 以下はプロキシの仕組み（変更なし） ---
   try {
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
     });
-    res.setHeader('Content-Type', response.headers['content-type']);
+    res.setHeader('Content-Type', response.headers['content-type'] || 'text/html');
     res.send(response.data);
   } catch (error) {
     res.status(500).send('Error: ' + error.message);
