@@ -3,7 +3,7 @@ const axios = require('axios');
 module.exports = async (req, res) => {
   const { url } = req.query;
 
-  // 1. トップ画面を表示（検索窓がある画面）
+  // 1. トップ画面（カモフラージュ）
   if (!url) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(`
@@ -14,39 +14,27 @@ module.exports = async (req, res) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>世界史重要事項アーカイブ</title>
           <style>
-              body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-              .container { max-width: 500px; margin: 50px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-              h1 { font-size: 1.1rem; color: #2c3e50; border-left: 5px solid #2c3e50; padding-left: 10px; margin-bottom: 20px; }
-              .search-box { display: flex; flex-direction: column; gap: 10px; }
-              input { padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
-              button { padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-              button:active { background: #1a252f; }
-              .hint { font-size: 0.75rem; color: #7f8c8d; margin-top: 15px; line-height: 1.4; }
+              body { font-family: sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; align-items: center; height: 80vh; margin: 0; }
+              .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+              h1 { font-size: 1.2rem; color: #1a73e8; margin-bottom: 20px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+              input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; }
+              button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+              .footer { font-size: 11px; color: #777; margin-top: 20px; text-align: center; }
           </style>
       </head>
       <body>
-          <div class="container">
-              <h1>世界史重要事項アーカイブ</h1>
-              <div class="search-box">
-                  <input type="text" id="q" placeholder="キーワードまたはURLを入力..." onkeypress="if(event.key==='Enter')go()">
-                  <button onclick="go()">データベースを検索</button>
-              </div>
-              <div class="hint">
-                  ※歴史的資料の閲覧を目的としています。<br>
-                  URLを直接入力するか、検索ワードを入れてください。
-              </div>
+          <div class="card">
+              <h1>世界史資料データベース</h1>
+              <input type="text" id="q" placeholder="検索ワードまたはURL..." onkeypress="if(event.key==='Enter')go()">
+              <button onclick="go()">資料をリクエスト</button>
+              <div class="footer">※教育用アカウントでの閲覧ログを保存しています</div>
           </div>
           <script>
               function go() {
-                  const query = document.getElementById('q').value;
-                  if (!query) return;
-                  let targetUrl = query;
-                  // URL形式でない場合はGoogle検索へ
-                  if (!query.startsWith('http')) {
-                      targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
-                  }
-                  // 現在のページに ?url=... を付けてリダイレクト
-                  window.location.href = window.location.pathname + '?url=' + encodeURIComponent(targetUrl);
+                  const q = document.getElementById('q').value;
+                  if (!q) return;
+                  let t = q.startsWith('http') ? q : 'https://www.google.com/search?q=' + encodeURIComponent(q);
+                  window.location.href = '?url=' + encodeURIComponent(t);
               }
           </script>
       </body>
@@ -54,19 +42,31 @@ module.exports = async (req, res) => {
     `);
   }
 
-  // 2. プロキシとして動作する部分
+  // 2. プロキシ処理
   try {
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8'
       },
-      timeout: 10000 // 10秒でタイムアウト
+      timeout: 15000
     });
-    
-    res.setHeader('Content-Type', response.headers['content-type'] || 'text/html');
+
+    let contentType = response.headers['content-type'] || 'text/html';
+    res.setHeader('Content-Type', contentType);
+
+    // HTMLの場合のみ、リンクを書き換えてプロキシを継続させる
+    if (contentType.includes('text/html')) {
+      let html = response.data.toString('utf-8');
+      // 簡易的なリンク書き換え（サイト内のリンクもプロキシを通すようにする）
+      const baseUrl = new URL(url).origin;
+      html = html.replace(/(src|href)="(?!http|#)([^"]+)"/g, `$1="${baseUrl}/$2"`);
+      return res.send(html);
+    }
+
     return res.send(response.data);
-  } catch (error) {
-    return res.status(500).send('エラーが発生しました: ' + error.message);
+  } catch (e) {
+    return res.status(500).send('アクセスエラー: リクエストが拒否されたか、URLが正しくありません。');
   }
 };
