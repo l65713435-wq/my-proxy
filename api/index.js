@@ -3,7 +3,7 @@ const axios = require('axios');
 module.exports = async (req, res) => {
   const { url } = req.query;
 
-  // 1. トップ画面（世界史学習サイトへの偽装）
+  // 1. トップ画面（完全に学習サイトに見せかける）
   if (!url) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(`
@@ -14,46 +14,53 @@ module.exports = async (req, res) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>世界史重要事項アーカイブ</title>
           <style>
-              body { font-family: "Helvetica Neue", Arial, sans-serif; background: #f0f2f5; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-              .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 450px; text-align: center; }
-              h1 { font-size: 1.4rem; color: #1a73e8; margin-bottom: 10px; border-bottom: 2px solid #e8f0fe; padding-bottom: 15px; }
-              p { font-size: 0.9rem; color: #5f6368; margin-bottom: 25px; line-height: 1.5; }
-              .input-group { display: flex; flex-direction: column; gap: 12px; }
-              input { width: 100%; padding: 15px; border: 1px solid #dfe1e5; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; transition: border 0.3s; }
-              input:focus { border-color: #1a73e8; }
-              button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; transition: background 0.3s; }
-              button:hover { background: #1765d2; }
-              .footer { font-size: 11px; color: #9aa0a6; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px; }
+              body { font-family: "Helvetica Neue", sans-serif; background: #f8f9fa; margin: 0; color: #333; }
+              .header { background: #2c3e50; color: white; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; }
+              .container { max-width: 800px; margin: 30px auto; padding: 20px; }
+              .search-section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+              h2 { font-size: 1rem; color: #666; margin-top: 0; }
+              .input-group { display: flex; gap: 10px; margin-top: 15px; }
+              input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+              button { padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+              .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+              .link-item { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db; text-decoration: none; color: #333; font-size: 0.9rem; transition: 0.2s; }
+              .link-item:hover { background: #eef7fd; }
+              .footer { text-align: center; font-size: 0.7rem; color: #999; margin-top: 50px; }
           </style>
       </head>
       <body>
-          <div class="card">
-              <h1>世界史資料データベース</h1>
-              <p>研究論文、歴史的資料、および学術サイトの検索が可能です。キーワードまたはURLを入力してください。</p>
-              <div class="input-group">
-                  <input type="text" id="q" placeholder="検索ワード または URLを入力..." onkeypress="if(event.key==='Enter')go()">
-                  <button onclick="go()">資料をリクエスト</button>
+          <div class="header">History Archive Online</div>
+          <div class="container">
+              <div class="search-section">
+                  <h2>学術データベース検索</h2>
+                  <div class="input-group">
+                      <input type="text" id="q" placeholder="キーワードを入力..." onkeypress="if(event.key==='Enter')go()">
+                      <button onclick="go()">検索実行</button>
+                  </div>
               </div>
+
+              <h2>クイックアクセス（推奨資料）</h2>
+              <div class="link-grid">
+                  <a href="#" class="link-item" onclick="jump('https://www.google.com')">Google 学術検索代行</a>
+                  <a href="#" class="link-item" onclick="jump('https://www.wikipedia.org')">Wikipedia 歴史カテゴリ</a>
+                  <a href="#" class="link-item" onclick="jump('https://www.youtube.com')">歴史映像アーカイブ (YT)</a>
+                  <a href="#" class="link-item" onclick="jump('https://twitter.com')">リアルタイム歴史速報</a>
+              </div>
+
               <div class="footer">
-                  © 2025 Historical Data Archive Project<br>
-                  教育ネットワーク経由のアクセスは記録されています。
+                  © 2025 Education Reference Database / 文部科学省学習指導要領準拠（自称）
               </div>
           </div>
           <script>
+              // 直接プロキシを通すと403が出るため、Google等の大手は「リダイレクト」で飛ばす方式に変更
               function go() {
-                  const q = document.getElementById('q').value.trim();
+                  const q = document.getElementById('q').value;
                   if (!q) return;
-                  
-                  let target;
-                  if (q.startsWith('http://') || q.startsWith('https://')) {
-                      target = q;
-                  } else if (q.includes('.') && !q.includes(' ')) {
-                      target = 'https://' + q;
-                  } else {
-                      // Googleよりブロックされにくい DuckDuckGo を使用
-                      target = 'https://duckduckgo.com/html/?q=' + encodeURIComponent(q);
-                  }
+                  const target = 'https://www.google.com/search?q=' + encodeURIComponent(q);
                   window.location.href = '?url=' + encodeURIComponent(target);
+              }
+              function jump(u) {
+                  window.location.href = '?url=' + encodeURIComponent(u);
               }
           </script>
       </body>
@@ -61,40 +68,8 @@ module.exports = async (req, res) => {
     `);
   }
 
-  // 2. プロキシ処理（リンク書き換え機能付き）
-  try {
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8'
-      },
-      timeout: 15000
-    });
-
-    let contentType = response.headers['content-type'] || 'text/html';
-    res.setHeader('Content-Type', contentType);
-
-    // HTMLファイルの場合のみ、相対パスの書き換えを試みる
-    if (contentType.includes('text/html')) {
-      let html = response.data.toString('utf-8');
-      const origin = new URL(url).origin;
-      
-      // 画像やリンクが切れないように、ドメインを補完する簡易処理
-      html = html.replace(/(src|href)="(?!http|#|javascript)([^"]+)"/g, `$1="${origin}/$2"`);
-      return res.send(html);
-    }
-
-    return res.send(response.data);
-  } catch (e) {
-    return res.status(500).send(`
-      <div style="font-family:sans-serif; padding:20px; text-align:center;">
-        <h3>アクセスエラー</h3>
-        <p>指定された資料（URL）にアクセスできませんでした。</p>
-        <p style="color:red; font-size:0.8rem;">${e.message}</p>
-        <button onclick="location.href='/'">戻る</button>
-      </div>
-    `);
-  }
+  // 2. 転送処理
+  // 403回避のため、中継せずにブラウザに「このURLへ行け」と命令（リダイレクト）を出す
+  res.writeHead(302, { Location: url });
+  res.end();
 };
